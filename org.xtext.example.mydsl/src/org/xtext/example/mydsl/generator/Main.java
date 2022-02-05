@@ -6,6 +6,8 @@ package org.xtext.example.mydsl.generator;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
+
+import java.io.File;
 import java.util.List;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -40,29 +42,51 @@ public class Main {
 	@Inject
 	private GeneratorDelegate generator;
 
-	@Inject 
+	@Inject
 	private JavaIoFileSystemAccess fileAccess;
 
-	protected void runGenerator(String string) {
+	protected void runGenerator(String path) {
 		// Load the resource
 		ResourceSet set = resourceSetProvider.get();
-		Resource resource = set.getResource(URI.createFileURI(string), true);
+		initializeResourceSet(path, set);
 
-		// Validate the resource
-		List<Issue> list = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
-		if (!list.isEmpty()) {
-			for (Issue issue : list) {
-				System.err.println(issue);
+		for (Resource resource : set.getResources()) {
+			// Validate the resource
+			List<Issue> list = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
+			if (!list.isEmpty()) {
+				for (Issue issue : list) {
+					System.err.println(issue);
+				}
+				return;
 			}
-			return;
+
+			// Configure and start the generator
+			fileAccess.setOutputPath("src-gen/");
+			GeneratorContext context = new GeneratorContext();
+			context.setCancelIndicator(CancelIndicator.NullImpl);
+			generator.generate(resource, fileAccess, context);
 		}
-
-		// Configure and start the generator
-		fileAccess.setOutputPath("src-gen/");
-		GeneratorContext context = new GeneratorContext();
-		context.setCancelIndicator(CancelIndicator.NullImpl);
-		generator.generate(resource, fileAccess, context);
-
 		System.out.println("Code generation finished.");
+	}
+
+	/**
+	 * /* ResourceSetにResourceを追加する.
+	 * 
+	 * @param path mydslファイルパス or mydslファイルが格納されているフォルダパス.
+	 * @param set  mydslファイルから生成したResourceを追加するResourceSet.
+	 */
+	private void initializeResourceSet(String path, ResourceSet set) {
+		File target = new File(path);
+
+		if (target.isDirectory()) {
+			for (File file : target.listFiles()) {
+				initializeResourceSet(file.getAbsolutePath(), set);
+			}
+		} else {
+			// ResourceSet.getResource()でmydslファイルのResourceが追加され
+			// ResourceSet.getResources()で取得可能となる.
+			// これによりmydslファイルをまたがったCrossRefferenceができるようになる.
+			set.getResource(URI.createFileURI(target.getAbsolutePath()), true);
+		}
 	}
 }
