@@ -26,6 +26,11 @@ generator = {
 
 その後、MWE2ワークフローを実行すると、```src/org/xtext/example/mydsl/generator/Main.java```が生成されます。
 
+## Main.javaの実装
+デフォルトで生成されるMain.javaでは、引数に```.mydsl```ファイルパスを受け、validation->自動生成の処理を行う。  
+この時、.mydslファイルが複数あり、ファイルをまたがったCrossReferenceが使用されていると実装方法によってはvalidationや自動生成時にエラーが発生する。  
+上記の対応方法はMain.java[Git Diff](https://github.com/msntts/Xtext-Standalone-fat-jar/commit/ed525d35db94608b86c797c81cd35eec5d312b0d)参照。
+
 ## eclipseにJar Export用の設定を追加
 [Git Diff](https://github.com/msntts/Xtext-Standalone-fat-jar/commit/c0bd15bfa5ba313f6113613cafa745ac62d18c51)  
 JarのExportのため、MainクラスやExportするプロジェクトの設定を行います。  
